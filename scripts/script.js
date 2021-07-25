@@ -5,6 +5,7 @@ const percentBtn = document.getElementById("percent");
 const operatorBtns = document.querySelectorAll(".operator");
 const numberBtns = document.querySelectorAll(".number");
 
+let expression = [];
 let operandOne = null;
 let operandTwo = null;
 let operator = null;
@@ -55,46 +56,71 @@ function updateDisplay(displayValue) {
     resultDisplay.innerText = String(displayValue);
 }
 
+function emptyExpression() {
+    while(expression.length > 0) {
+        expression.pop();
+    }
+    operandOne = operandTwo = operator = result = null;
+    return;
+}
+
 function clear() {
     updateDisplay("0");
-    operandOne, operandTwo, operator, result = null;
+    emptyExpression();
     displayValue = "";
     shouldResetDisplay = false;
 }
-//TODO: simplify and clean up
-//TODO: add logic to display message when divide by 0
-function evaluateOperator(btn) {
-    if (operandOne === null && btn.value === "equal") {
-        return;
-    }
-    if (operandOne !== null && shouldResetDisplay === true && btn.value === "equal") {
-        return;
-    }
-    if (operandOne === null) {
-        operandOne = Number(displayValue);
-        operator = btn.value;
+
+function evaluateExpression(btnOperator) {
+    operator = expression.pop();
+    operandOne = expression.pop();
+    operandTwo = Number(displayValue);
+    result = Math.round(operate(operator, operandOne, operandTwo) * 100) / 100;
+    updateDisplay(result);
+    expression.push(result);
+    expression.push(btnOperator)
+    operandOne = operandTwo = operator = null;
+    shouldResetDisplay = true;
+}
+
+function evaluateOperator(btnOperator) {
+    if (expression.length === 0) {
+        expression.push(Number(displayValue));
+        expression.push(btnOperator);
         shouldResetDisplay = true;
-    } else if (operandOne !== null && shouldResetDisplay === true) {
-        operator = btn.value;
-    } else if (operandOne !== null && shouldResetDisplay === false) {
-        if (btn.value === "equal") {
-            operandTwo = Number(displayValue);
-            result = Math.round(operate(operator, operandOne, operandTwo) * 100) / 100;
-            updateDisplay(result);
-            operandOne = result;
-            operandTwo = null;
-            operator = null;
-            shouldResetDisplay = true;
-        } else {
-            operandTwo = Number(displayValue);
-            result = Math.round(operate(operator, operandOne, operandTwo) * 100) / 100;
-            updateDisplay(result);
-            operandOne = result;
-            operandTwo = null;
-            operator = btn.value;
-            shouldResetDisplay = true;
-        }
+        return;
     }
+    if (expression.length === 1) {
+        expression.push(btnOperator);
+        return;
+    }
+    if (expression.length === 2 && shouldResetDisplay === true) {
+        expression.pop();
+        expression.push(btnOperator);
+        return;
+    }
+    if (expression.length === 2 && shouldResetDisplay === false) {
+        evaluateExpression(btnOperator);
+        return;
+    }
+}
+
+function evaluateEqual() {
+    if (expression.length > 1) {
+        operator = expression.pop();
+        operandOne = expression.pop();
+        operandTwo = Number(displayValue);
+        result = Math.round(operate(operator, operandOne, operandTwo) * 100) / 100;
+        updateDisplay(result);
+        expression.push(result);
+        operandOne = operandTwo = operator = result = null;
+        shouldResetDisplay = true;
+    }
+    return;
+}
+
+function isEqual(btnOperator) {
+    return btnOperator === "equal" ? true : false;
 }
 
 clearBtn.addEventListener("click", clear);
@@ -112,6 +138,6 @@ numberBtns.forEach((btn) => {
 
 operatorBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
-        evaluateOperator(btn);
+        return isEqual(btn.value) ? evaluateEqual() : evaluateOperator(btn.value);
     });
 });
